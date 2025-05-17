@@ -19,18 +19,6 @@ on tab complete of "/team" and "/teams":
 				set {_team} to loop-value
 		set tab completions for position 2 to {teams::%{_team}%::players::*}
 
-on placeholderapi placeholder request for the prefix "skteams":
-	loop {teams::*}:
-		if {teams::%loop-value%::players::*} contains player:
-			set {_team} to loop-value
-	if the identifier is "name":
-		set the result to "%{_team} ? ""%"
-	else if the identifier is "inteam":
-		if {_team} is set:
-			set the result to "true"
-		else:
-			set the result to "false"
-
 on join:
 	if {teamdeletingtime::%player's uuid%} is set:
 		delete {teamdeletingtime::%player's uuid%}
