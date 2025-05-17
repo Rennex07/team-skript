@@ -1,0 +1,499 @@
+on tab complete of "/team" and "/teams":
+	if {inteam::%player's uuid%} is not set:
+		set tab completions for position 1 to "create" and "join"
+	else:
+		set tab completions for position 1 to "leave", "delhome", "chat", "invite", "disband", "info", "kick", "sethome" and "home"
+	if tab arg-1 is "invite":
+		loop all players:
+			add loop-player to {_players::*}
+			set tab completions for position 2 to {_players::*}
+	else if tab arg-1 is "join":
+		set tab completions for position 2 to {teams::*}
+	else if tab arg-1 is "info":
+		set tab completions for position 2 to {teams::*}
+	else if tab arg-1 is "create":
+		set tab completions for position 2 to "(name)"
+	else if tab arg-1 is "kick":
+		loop {teams::*}:
+			if {teams::%loop-value%::players::*} contains player:
+				set {_team} to loop-value
+		set tab completions for position 2 to {teams::%{_team}%::players::*}
+
+on placeholderapi placeholder request for the prefix "skteams":
+	loop {teams::*}:
+		if {teams::%loop-value%::players::*} contains player:
+			set {_team} to loop-value
+	if the identifier is "name":
+		set the result to "%{_team} ? ""%"
+	else if the identifier is "inteam":
+		if {_team} is set:
+			set the result to "true"
+		else:
+			set the result to "false"
+
+on join:
+	if {teamdeletingtime::%player's uuid%} is set:
+		delete {teamdeletingtime::%player's uuid%}
+	if {teams::hometeleporation::%player's uuid%} is set:
+		delete {teams::hometeleporation::%player's uuid%}
+    
+on quit:
+	if {teamdeletingtime::%player's uuid%} is set:
+		delete {teamdeletingtime::%player's uuid%}
+	if {teams::hometeleporation::%player's uuid%} is set:
+		delete {teams::hometeleporation::%player's uuid%}
+
+command /team [<text>] [<text>]:
+	aliases: /teams
+	trigger:
+		if arg-1 is not set:
+			if {inteam::%player's uuid%} is not set:
+				send "&cYou don't have a team. Type /team create (name) to create a team."
+				send action bar "&cYou don't have a team." to player
+				play sound "entity.villager.no" to player
+			else:
+				make player execute command "/team info"
+		if arg-1 is "info":
+			if arg-2 is set:
+				if {teams::*} contains arg-2:
+					teaminfo(player, arg-2)
+			else:
+				loop {teams::*}:
+					if {teams::%loop-value%::players::*} contains player:
+						teaminfo(player, loop-value)
+		if arg-1 is "home":
+			loop {teams::*}:
+				if {teams::%loop-value%::players::*} contains player:
+					set {_team} to loop-value
+			if {_team} is set:
+				if {teams::%{_team}%::home} is set:
+					if {teamhometeleporting::%player's uuid%} is set:
+						stop
+					if {teamhometeleporting::%player's uuid%} is not set:
+						set {teamhometeleporting::%player's uuid%} to true
+						set {pos::%player's uuid%} to player's location
+						if {teamhometeleporting::%player's uuid%} is set:
+							send "<##A7A7A7>You will be teleported in <##00A4FB>5 <##A7A7A7>seconds" to player
+							send action bar "<##A7A7A7>You will be teleported in <##00A4FB>5 <##A7A7A7>seconds" to player
+							wait 1 second
+						if {teamhometeleporting::%player's uuid%} is set:
+							send "<##A7A7A7>You will be teleported in <##00A4FB>4 <##A7A7A7>seconds" to player
+							send action bar "<##A7A7A7>You will be teleported in <##00A4FB>4 <##A7A7A7>seconds" to player
+							wait 1 second
+						if {teamhometeleporting::%player's uuid%} is set:
+							send "<##A7A7A7>You will be teleported in <##00A4FB>3 <##A7A7A7>seconds" to player
+							send action bar "<##A7A7A7>You will be teleported in <##00A4FB>3 <##A7A7A7>seconds" to player
+							wait 1 second
+						if {teamhometeleporting::%player's uuid%} is set:
+							send "<##A7A7A7>You will be teleported in <##00A4FB>2 <##A7A7A7>seconds" to player
+							send action bar "<##A7A7A7>You will be teleported in <##00A4FB>2 <##A7A7A7>seconds" to player
+							wait 1 second
+						if {teamhometeleporting::%player's uuid%} is set:
+							send "<##A7A7A7>You will be teleported in <##00A4FB>1 <##A7A7A7>seconds" to player
+							send action bar "<##A7A7A7>You will be teleported in <##00A4FB>1 <##A7A7A7>seconds" to player
+							wait 1 second
+						if {teamhometeleporting::%player's uuid%} is set:
+							delete {teamhometeleporting::%player's uuid%}
+							delete {pos::%player's uuid%}
+							teleport player to {teams::%{_team}%::home}
+						
+				else:
+					send "<##A8A8A8>Your team does not have a home."
+					send action bar "<##A8A8A8>Your team does not have a home." to player
+			else:
+				send "&cYou do not have a team."
+				send action bar "&cYou do not have a team." to player
+				play sound "entity.villager.no" to player
+		if arg-1 is "sethome":
+			loop {teams::*}:
+				if {teams::%loop-value%::owner::*} contains player:
+					set {_ownedteam} to loop-value
+			if {_ownedteam} is set:
+				if player's world is "spawn" or "afk" or "arena_rtpportal" or "arena_badlands" or "arena_desert" or "arena_flat" or "arena_plains":
+					send "&cYou cannot set a team home here."
+					send action bar "&cYou cannot set a team home here." to player
+					play sound "entity.villager.no" to player
+					stop
+				send "<##A8A8A8>Team home set"
+				send action bar "<##A8A8A8>Team home set" to player
+				set {_loc} to player's location
+				set {_loc}'s yaw to player's yaw
+				set {_loc}'s pitch to player's pitch
+				set {teams::%{_ownedteam}%::home} to {_loc}
+			else if {_ownedteam} is not set:
+				if {inteam::%player's uuid%} is true:
+					send "&cYour team leader can set this!"
+				else:
+					send "&cYou do not have a team."
+					send action bar "&cYou do not have a team." to player
+					play sound "entity.villager.no" to player
+					
+		if arg-1 is "delhome":
+			loop {teams::*}:
+				if {teams::%loop-value%::owner::*} contains player:
+					set {_ownedteam} to loop-value
+			if {_ownedteam} is set:
+				if {teams::%{_ownedteam}%::home} is set:
+					send "<##A8A8A8>Team home deleted."
+					send action bar "<##A8A8A8>Team home deleted." to player
+					delete {teams::%{_ownedteam}%::home}
+				else:
+					send "<##A8A8A8>Your team does not have a home."
+					send action bar "<##A8A8A8>Your team does not have a home." to player
+			else if {_ownedteam} is not set:
+				if {inteam::%player's uuid%} is true:
+					send "&cYour team leader can set this!"
+				else:
+					send "&cYou do not have a team."
+					send action bar "&cYou do not have a team." to player
+					play sound "entity.villager.no" to player
+					
+		if arg-1 is "leave":
+			if {inteam::%player's uuid%} is true:
+				# Find Team
+				loop {teams::*}:
+					if {teams::%loop-value%::players::*} contains player:
+						set {_team} to loop-value
+						if {teams::%loop-value%::owner::*} contains player:
+							send "&cYou cannot leave the team, you can only disband it."
+							send action bar "&cYou cannot leave the team, you can only disband it." to player
+							play sound "entity.villager.no" to player
+						else:
+							delete {inteam::%player's uuid%}
+							remove player from {teams::%{_team}%::mod::*}
+							remove player from {teams::%{_team}%::players::*}
+							loop {teams::%{_team}%::players::*}:
+								send "<##A7A7A7>The user <##00A4FB>%player% <##A7A7A7>left the team" to loop-value-2
+								send action bar "<##A7A7A7>The user <##00A4FB>%player% <##A7A7A7>left the team" to loop-value-2
+							send "<##A7A7A7>You left the team"
+							send action bar "<##A7A7A7>You left the team" to player
+			else:
+				send "&cYou do not have a team."
+				send action bar "&cYou do not have a team." to player
+				play sound "entity.villager.no" to player
+		if arg-1 is "join":
+			send {invitesystem::%player's uuid%::*} 
+			if arg-2 is set:
+				if {inteam::%player's uuid%} is true:
+					send "&cYou are already in a team."
+					send action bar "&cYou are already in a team." to player
+					play sound "entity.villager.no" to player
+					stop
+				if {teams::*} contains arg-2:
+					if {invitesystem::%player's uuid%} contains arg-2:
+						loop {teams::%{invitesystem::%player's uuid%}%::players::*}:
+							send "<##A7A7A7>User <##00A4FB>%player% <##A7A7A7>joined the team." to loop-value
+							send action bar "<##A7A7A7>User <##00A4FB>%player% <##A7A7A7>joined the team." to loop-value
+						add player to {teams::%{invitesystem::%player's uuid%}%::players::*}
+						set {inteam::%player's uuid%} to true
+						send "<##7AFB00>You joined the team." to player
+						send "<##A7A7A7>You joined the team <##00A4FB>%arg-2%" to player
+						send action bar "<##7AFB00>You joined the team." to player
+						loop {teams::*}:
+							if {teams::%loop-value%::owner::*} contains player:
+								set {-teamowner} to loop-value
+						set {_teamowner} to {-teamowner}
+						delete {-teamowner}
+						delete {invitesystem::%player's uuid%}
+					else:
+						send "&cYou are not invited to this team."
+						send action bar "&cYou are not invited to this team." to player
+						play sound "entity.villager.no" to player
+				else:
+					send "&cUser/team does not exist."
+					send action bar "&cUser/team does not exist." to player
+					play sound "entity.villager.no" to player
+			else:
+				stop
+		if arg-1 is "create":
+			if arg-2 is set:
+				if {teams::*} contains arg-2:
+					send "&cYou cannot create a team with this name, it is already taken."
+					send action bar "&cYou cannot create a team with this name, it is already taken." to player
+				else:
+					if {inteam::%player's uuid%} is true:
+						send "&cYou are already in a team."
+						send action bar "&cYou are already in a team." to player
+					else:
+						send "<##7AFB00>Team created."
+						send action bar "<##7AFB00>Team created." to player
+						play sound "entity.player.levelup" to player
+						add arg-2 to {teams::*}
+						add player to {teams::%arg-2%::owner::*}
+						add player to {teams::%arg-2%::players::*}
+						set {inteam::%player's uuid%} to true
+		if arg-1 is "invite":
+			if arg-2 is set:
+				if arg-2 is not player:
+					if arg-2 parsed as offlineplayer is online:
+						if {inteam::%arg-2 parsed as offlineplayer's uuid%} is true:
+							send "&cThis user already have a team."
+							send action bar "&cThis user already have a team." to player
+							play sound "entity.villager.no" to player
+						else:
+							if {teamtoggle::%arg-2 parsed as offlineplayer's uuid%} is not set:
+								send "<##A7A7A7>You invited <##00A4FB>%arg-2% <##A7A7A7>to the team"
+								send action bar "<##A7A7A7>You invited <##00A4FB>%arg-2% <##A7A7A7>to the team" to player
+								loop {teams::*}:
+									if {teams::%loop-value%::owner::*} contains player:
+										set {-teaminvite} to loop-value
+								if size of {teams::%{-teaminvite}%::players::*} >= 14:
+									send "&cYou have max players in your team."
+									send action bar "&cYou have max players in your team." to player
+									play sound "entity.villager.no" to player
+									stop
+								set {_team} to {-teaminvite}
+								set {_p} to arg-2 parsed as player
+								delete {-teaminvite}
+								send "<##00A4FB>%player% <##A7A7A7>invited you to the team <##00A4FB>%{_team}%" to arg-2 parsed as offlineplayer
+								send formatted "<run command:/team join %{_team}%><##00A4FB>[CLICK TO ACCEPT] &r<##A7A7A7>or type <##00A4FB>/team join %{_team}%" to arg-2 parsed as offlineplayer
+								send action bar "<##00A4FB>%player% <##A7A7A7>invited you to the team <##00A4FB>%{_team}%" to arg-2 parsed as offlineplayer
+								set {invitesystem::%{_p}'s uuid%} to {_team}
+								wait 60 seconds
+								if {invitesystem::%{_p}'s uuid%} is set:
+									delete {invitesystem::%{_p}'s uuid%}
+							else:
+								send "&cThis user disabled receiving team invites."
+								send action bar "&cThis user disabled receiving team invites." to player
+								play sound "entity.villager.no" to player
+					else:
+						send "&cThis user is offline."
+						send action bar "&cThis user is offline." to player
+						play sound "entity.villager.no" to player
+				else:
+					send "&cThis user already have a team."
+					send action bar "&cThis user already have a team." to player
+					play sound "entity.villager.no" to player
+		if arg-1 is "disband":
+			if arg-2 is "confirm":
+				if {teamdeletingtime::%player's uuid%} is set:
+					if difference between now and {teamdeletingtime::%player's uuid%} is less than 60 seconds:
+						loop {teams::%{teamdeleting::%player's uuid%}%::players::*}:
+							delete {inteam::%loop-value's uuid%}
+						send "<##A8A8A8>You disbanded your team"
+						send action bar "<##A8A8A8>You disbanded your team" to player
+						delete {teams::%{teamdeleting::%player's uuid%}%::players::*}
+						delete {teams::%{teamdeleting::%player's uuid%}%::mod::*}
+						delete {teams::%{teamdeleting::%player's uuid%}%::owner::*}
+						delete {teams::%{teamdeleting::%player's uuid%}%::home}
+						delete {teams::%player's uuid%::*}
+						remove {teamdeleting::%player's uuid%} from {teams::*}
+						delete {teamdeleting::%player's uuid%}
+						delete {teamdeletingtime::%player's uuid%}
+			else:
+				loop {teams::*}:
+					if {teams::%loop-value%::owner::*} contains player:
+						if {teamdeletingtime::%player's uuid%} is set:
+							if difference between now and {teamdeletingtime::%player's uuid%} is less than 60 seconds:
+								send "&cYou already have a pending request."
+							else:
+								set {_DisbandGUI} to chest inventory with 3 rows named "<##3F3F3F>ᴄᴏɴꜰɪʀᴍ ᴅɪꜱʙᴀɴᴅɪɴɢ ᴛᴇᴀᴍ"
+								set slot 11 of {_DisbandGUI} to red stained glass pane named "<##FC0000>ᴄᴀɴᴄᴇʟ" with lore "&fClick to cancel"
+								set slot 15 of {_DisbandGUI} to lime stained glass pane named "<##00FC00>ᴄᴏɴꜰɪʀᴍ" with lore "&fClick to confirm"
+								open {_DisbandGUI} to player
+								set {teamdeleting::%player's uuid%} to "%loop-value%"
+								set {teamdeletingtime::%player's uuid%} to now
+						else:
+							set {_DisbandGUI} to chest inventory with 3 rows named "<##3F3F3F>ᴄᴏɴꜰɪʀᴍ ᴅɪꜱʙᴀɴᴅɪɴɢ ᴛᴇᴀᴍ"
+							set slot 11 of {_DisbandGUI} to red stained glass pane named "<##FC0000>ᴄᴀɴᴄᴇʟ" with lore "&fClick to cancel"
+							set slot 15 of {_DisbandGUI} to lime stained glass pane named "<##00FC00>ᴄᴏɴꜰɪʀᴍ" with lore "&fClick to confirm"
+							open {_DisbandGUI} to player
+							set {teamdeleting::%player's uuid%} to "%loop-value%"
+							set {teamdeletingtime::%player's uuid%} to now
+				if {teamdeleting::%player's uuid%} is not set:
+					send "&cYou do not have a team."
+					send action bar "&cYou do not have a team." to player
+					play sound "entity.villager.no" to player
+		if arg-1 is "kick":
+			if arg-2 is set:
+				loop {teams::*}:
+					if {teams::%loop-value%::owner::*} contains player:
+						if {teams::%loop-value%::players::*} contains arg-2:
+							if {teams::%loop-value%::owner::*} contains arg-2:
+								send "&cYou cannot kick yourself."
+								send action bar "&cYou cannot kick yourself." to player
+								play sound "entity.villager.no" to player
+							else:
+								remove arg-2 from {teams::%loop-value-1%::players::*}
+								remove arg-2 from {teams::%loop-value-1%::mod::*}
+								delete {inteam::%arg-2 parsed as offlineplayer's uuid%}
+								loop {teams::%loop-value%::players::*}:
+									send "<##FC0000>%arg-2% got kicked from your team." to loop-value-2
+									send action bar "<##FC0000>%arg-2% got kicked from your team." to loop-value-2
+								send "<##FC0000>You got kicked from your team." to arg-2 parsed as offlineplayer
+								send action bar "<##FC0000>You got kicked from your team." to arg-2 parsed as offlineplayer
+								
+						else:
+							send "&cUser does not seem to be in your team."
+							send action bar "&cUser does not seem to be in your team." to player
+							play sound "entity.villager.no" to player
+					if {teams::%loop-value%::mod::*} contains player:
+						if {teams::%loop-value%::players::*} contains arg-2:
+							if {teams::%loop-value%::owner::*} contains arg-2:
+								send "&cYou cannot kick your team owner."
+								send action bar "&cYou cannot kick your team owner." to player
+								play sound "entity.villager.no" to player
+							else:
+								remove arg-2 from {teams::%loop-value-1%::players::*}
+								remove arg-2 from {teams::%loop-value-1%::mod::*}
+								delete {inteam::%arg-2 parsed as offlineplayer's uuid%}
+								loop {teams::%loop-value%::players::*}:
+									send "<##FC0000>%arg-2% got kicked from your team." to loop-value-2
+									send action bar "<##FC0000>%arg-2% got kicked from your team." to loop-value-2
+								send "<##FC0000>You got kicked from your team." to arg-2 parsed as offlineplayer
+								send action bar "<##FC0000>You got kicked from your team." to arg-2 parsed as offlineplayer
+						else:
+							send "&cUser does not seem to be in your team."
+							send action bar "&cUser does not seem to be in your team." to player
+							play sound "entity.villager.no" to player
+		if arg-1 is "chat":
+			if arg-2 is not set:
+				loop {teams::*}:
+					if {teams::%loop-value%::players::*} contains player:
+						if {teamchattoggle::%player's uuid%::enabled} is true:
+							send "<##A8A8A8>You disabled team chat."
+							send action bar "<##A8A8A8>You disabled team chat." to player
+							delete {teamchattoggle::%player's uuid%::enabled}
+						else:
+							send "<##A8A8A8>You enabled team chat."
+							send action bar "<##A8A8A8>You enabled team chat." to player
+							set {teamchattoggle::%player's uuid%::enabled} to true
+			else:
+				loop {teams::*}:
+					if {teams::%loop-value%::players::*} contains player:
+						set {_teams} to loop-value
+				if {_teams} is not set:
+					send "&cYou do not have a team."
+					send action bar "&cYou do not have a team." to player
+					play sound "entity.villager.no" to player
+				else:
+					loop {teams::%{_teams}%::players::*}:
+						send "<##00A4FB>[TEAM] %player%: &f%arg-2%" to loop-value
+
+on chat:
+	if {teamchattoggle::%player's uuid%::enabled} is set:
+		cancel event
+		loop {teams::*}:
+			if {teams::%loop-value%::players::*} contains player:
+				set {_teams} to loop-value
+		if {_teams} is not set:
+			send "&cYou do not have a team."
+			send action bar "&cYou do not have a team." to player
+			play sound "entity.villager.no" to player
+			delete {teamchattoggle::%player's uuid%::enabled}
+		else:
+			loop {teams::%{_teams}%::players::*}:
+				teamchat(loop-value, "%player%: &f%message%")
+
+function teamchat(p: player, chatmessage: text):
+	send "<##00A4FB>[TEAM] %{_chatmessage}%" to {_p}
+	
+function teaminfo(p: player, t: text):
+	set {_owner} to {teams::%{_t}%::owner::1}
+	set {_TeamGUI} to a new chest inventory with 6 rows named "<##3F3F3F>ᴛᴇᴀᴍ (Page 1/1)"
+	set slot 48 of {_TeamGUI} to arrow named "<##00F986>ʙᴀᴄᴋ" with lore "&fClick to go to the previous page"
+	set slot 49 of {_TeamGUI} to iron helmet named "<##00F986>ᴛᴇᴀᴍ %formatSmallCaps("{%{_t}%}")%" with lore "&fClick to refresh" and "&7Add up to 50 team members" with item flag hide attributes
+	set slot 50 of {_TeamGUI} to arrow named "<##00F986>ɴᴇxᴛ" with lore "&fClick to go to the next page"
+	set slot 53 of {_TeamGUI} to iron sword named "<##00F986>ᴘᴠᴘ" with lore "&7Currently: <##FC0000>&lOFF" with item flag hide attributes
+	set slot 45 of {_TeamGUI} to {item.oak_sign} named "<##00F986>ꜱᴇᴀʀᴄʜ" with lore "&7Click to search for teammate"
+	set slot 46 of {_TeamGUI} to hopper named "<##00F986>ꜱᴏʀᴛɪɴɢ" with lore "&7Click to sort (Join Date)"
+	set slot (integers between 0 and 44) of {_TeamGUI} to gray stained glass pane named "<##00F986>ɪɴᴠɪᴛᴇ" with lore "&fClick to invite a new player"
+	set {_placement} to -1
+	loop {teams::%{_t}%::players::*}:
+		add 1 to {_index}
+		if {_index} is 1:
+			add 1 to {_placement}
+		if {_placement} is 35:
+			add 2 to {_placement}
+		else:
+			if loop-value is online:
+				if {teams::%{_t}%::mod::*} contains loop-value:
+					set slot {_placement} of {_TeamGUI} to skull of loop-value named "<##00F986>■%loop-value%" with lore "&fClick to edit"
+					add 1 to {_placement}
+				else:
+					set slot {_placement} of {_TeamGUI} to skull of loop-value named "<##00F986>■%loop-value%" with lore "&fClick to edit"
+					add 1 to {_placement}
+			else:
+				if {teams::%{_t}%::mod::*} contains loop-value:
+					set slot {_placement} of {_TeamGUI} to skull of loop-value named "<##FC0000>■<##00F986>%loop-value%" with lore "&fClick to edit"
+					add 1 to {_placement}
+				else:
+					set slot {_placement} of {_TeamGUI} to skull of loop-value named "<##FC0000>■<##00F986>%loop-value%" with lore "&fClick to edit"
+					add 1 to {_placement}
+	loop {teams::*}:
+		if {teams::%loop-value%::players::*} contains {_p}:
+			set {_team} to loop-value
+	if {_team} is set:
+		if {teams::%{_team}%::home} is set:
+			set slot 52 of {_TeamGUI} to {item.white_banner} named "<##00F986>ᴛᴇᴀᴍ ʜᴏᴍᴇ" with lore "&7Click to teleport to your team's home"
+		else:
+			set slot 52 of {_TeamGUI} to {item.white_banner} named "<##00F986>ᴛᴇᴀᴍ ʜᴏᴍᴇ" with lore "&7Set the team home with /home"
+	open {_TeamGUI} to {_p}
+
+on inventory click:
+	if name of event-inventory contains "<##3F3F3F>ᴛᴇᴀᴍ":
+		cancel event
+		if clicked slot = 52:
+			loop {teams::*}:
+				if {teams::%loop-value%::players::*} contains player:
+					set {_team} to loop-value
+			if {_team} is set:
+				if {teams::%{_team}%::home} is set:
+					close player's inventory
+					play sound "block.dispenser.fail" to player
+					make player execute command "/team home"
+				else:
+					close player's inventory
+					play sound "block.dispenser.fail" to player
+					play sound "entity.villager.no" to player
+					send "<##A7A7A7>Your team does not have a home."
+					send action bar "<##A7A7A7>Your team does not have a home." to player
+		if clicked slot = 49:
+			make player execute command "/team"
+		if clicked slot = gray stained glass pane:
+			play sound "block.dispenser.fail" to player
+			close player's inventory
+			send "<##A7A7A7>Type /team invite (name) to invite a player"
+			send action bar "<##A7A7A7>Type /team invite (name) to invite a player" to player
+		if clicked slot = 45 or 46 or 53 or skull:
+			play sound "block.dispenser.fail" to player
+			play sound "entity.villager.no" to player
+			close player's inventory
+			send "&cThis feature is currently unavailable and will be added at the next updates."
+			send action bar "&cThis feature is currently unavailable and will be added at the next updates." to player
+		
+on inventory close:
+    if name of event-inventory contains "<##3F3F3F>ᴄᴏɴꜰɪʀᴍ ᴅɪꜱʙᴀɴᴅɪɴɢ ᴛᴇᴀᴍ":
+        delete {teamdeletingtime::%player's uuid%}
+
+on inventory click:
+	if name of event-inventory = "<##3F3F3F>ᴄᴏɴꜰɪʀᴍ ᴅɪꜱʙᴀɴᴅɪɴɢ ᴛᴇᴀᴍ":
+		cancel event
+		if clicked slot = 15:
+			make player execute command "/team disband confirm"
+			play sound "block.dispenser.fail" to player
+			close player's inventory
+		if clicked slot = 11:
+			play sound "block.dispenser.fail" to player
+			close player's inventory
+		
+on join:
+	if {pos::%player's uuid%} is set:
+		delete {pos::%player's uuid%}
+	if {teamhometeleporting::%player's uuid%} is set:
+		delete {teamhometeleporting::%player's uuid%}
+
+on quit:
+	if {pos::%player's uuid%} is set:
+		delete {pos::%player's uuid%}
+	if {teamhometeleporting::%player's uuid%} is set:
+		delete {hometeleporting::%player's uuid%}
+		
+on player move:
+	if {teamhometeleporting::%player's uuid%} is set:
+		if distance between {pos::%player's uuid%} and player's location is bigger than 0.5:
+			delete {teamhometeleporting::%player's uuid%}
+			delete {pos::%player's uuid%}
+			send "<##FB5454>Teleport cancelled because you moved."
+			send action bar "<##FB5454>Teleport cancelled because you moved." to player
+			play sound "entity.villager.no" to player
